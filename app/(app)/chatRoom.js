@@ -10,6 +10,7 @@ import {
   Animated,
   Pressable,
   Platform,
+  KeyboardAvoidingView,
 } from "react-native";
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "expo-router";
@@ -585,87 +586,99 @@ export default function ChatRoom() {
           headerShadowVisible: false,
         }}
       />
-      <View className="flex-1 bg-white">
-        <StatusBar style="dark" />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={hp(1.5)} // Reduced offset
+      >
+        <View className="flex-1 bg-white">
+          <StatusBar style="dark" />
 
-        {/* Use platform-specific attachment menu */}
-        {renderAttachmentMenu()}
+          {/* Use platform-specific attachment menu */}
+          {renderAttachmentMenu()}
 
-        {/* Main chat interface */}
-        <View className="flex-1 justify-between bg-neutral-00 overflow-visible">
-          {/* Message list */}
-          <View className="flex-1">
-            <MessageList messages={messages} currentUser={user} />
-          </View>
-
-          {/* Upload progress indicator */}
-          {isUploading && (
-            <View className="bg-blue-50 px-4 py-2 flex-row items-center justify-between">
-              <View className="flex-row items-center">
-                <ActivityIndicator size="small" color="#0084ff" />
-                <Text className="ml-2 text-blue-600">
-                  Uploading file... {uploadProgress.toFixed(0)}%
-                </Text>
-              </View>
-              <TouchableOpacity
-                onPress={() => {
-                  cancelActiveUpload();
-                  setIsUploading(false);
-                }}
-                className="bg-red-100 rounded-full p-1"
-              >
-                <AntDesign name="close" size={hp(2)} color="red" />
-              </TouchableOpacity>
+          {/* Main chat interface */}
+          <View className="flex-1 justify-between bg-neutral-00 overflow-visible">
+            {/* Message list */}
+            <View className="flex-1">
+              <MessageList 
+                messages={messages.map((message) => ({
+                  ...message,
+                  id: message.id || message.createdAt?.toMillis() || Math.random().toString(36).substr(2, 9), // Ensure unique key
+                }))} 
+                currentUser={user} 
+              />
             </View>
-          )}
 
-          {/* Message input area */}
-          <View className="pt-2 pb-2 bg-white border-t border-gray-200">
-            <View className="flex-row items-center mx-2 my-1">
-              {/* Menu button - updated with proper positioning for web dropdown */}
-              <View className="relative">
+            {/* Upload progress indicator */}
+            {isUploading && (
+              <View className="bg-blue-50 px-4 py-2 flex-row items-center justify-between">
+                <View className="flex-row items-center">
+                  <ActivityIndicator size="small" color="#0084ff" />
+                  <Text className="ml-2 text-blue-600">
+                    Uploading file... {uploadProgress.toFixed(0)}%
+                  </Text>
+                </View>
                 <TouchableOpacity
-                  onPress={handleMenuPress}
-                  className="p-2 bg-blue-50 rounded-full"
+                  onPress={() => {
+                    cancelActiveUpload();
+                    setIsUploading(false);
+                  }}
+                  className="bg-red-100 rounded-full p-1"
                 >
-                  <Ionicons name="attach" size={hp(2.4)} color="#0084ff" />
+                  <AntDesign name="close" size={hp(2)} color="red" />
                 </TouchableOpacity>
               </View>
+            )}
 
-              {/* Text input + send button */}
-              <View
-                className="flex-row flex-1 bg-gray-100 px-3 rounded-full ml-1"
-                style={{
-                  alignItems: "center",
-                  minHeight: hp(5),
-                }}
-              >
-                <TextInput
-                  ref={inputRef}
-                  placeholder="Type a message..."
-                  className="flex-1 py-2 text-base text-neutral-800"
-                  multiline
-                  value={inputValue}
-                  onChangeText={(value) => {
-                    textRef.current = value;
-                    setInputValue(value);
-                  }}
+            {/* Message input area */}
+            <View className="pt-1 pb-1 bg-white border-t border-gray-200">
+              <View className="flex-row items-center mx-2 my-1">
+                {/* Menu button - updated with proper positioning for web dropdown */}
+                <View className="relative">
+                  <TouchableOpacity
+                    onPress={handleMenuPress}
+                    className="p-2 bg-blue-50 rounded-full"
+                  >
+                    <Ionicons name="attach" size={hp(2.4)} color="#0084ff" />
+                  </TouchableOpacity>
+                </View>
+
+                {/* Text input + send button */}
+                <View
+                  className="flex-row flex-1 bg-gray-100 px-3 rounded-full ml-1"
                   style={{
-                    fontSize: hp(2),
-                    minHeight: hp(4.5),
-                    maxHeight: hp(10),
-                    height: inputHeight,
-                    paddingVertical: 8,
+                    alignItems: "center",
+                    minHeight: hp(5),
                   }}
-                />
-                <TouchableOpacity onPress={handleSendMessage} className="p-2">
-                  <Ionicons name="send" size={hp(2.4)} color="#0084ff" />
-                </TouchableOpacity>
+                >
+                  <TextInput
+                    ref={inputRef}
+                    placeholder="Type a message..."
+                    className="flex-1 py-2 text-base text-neutral-800"
+                    multiline
+                    value={inputValue}
+                    onChangeText={(value) => {
+                      textRef.current = value;
+                      setInputValue(value);
+                    }}
+                    style={{
+                      fontSize: hp(2),
+                      minHeight: hp(4.5),
+                      maxHeight: hp(10),
+                      height: inputHeight,
+                      paddingVertical: 8,
+                    }}
+                  />
+                  <TouchableOpacity onPress={handleSendMessage} className="p-2">
+                    <Ionicons name="send" size={hp(2.4)} color="#0084ff" />
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </>
   );
 }

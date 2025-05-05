@@ -15,13 +15,13 @@ const MainLayout = () => {
     if (isAuthenticated === undefined) return;
 
     const inApp = segment[0] === "(app)";
-    const isAuthScreen = segment[0] === "signIn" || segment[0] === "signUp";
+    const isAuthScreen = segment[0] === "logIn" || segment[0] === "signUp";
 
     // Don't redirect if already on an auth screen
     if (!isAuthenticated && isAuthScreen) return;
 
     router.replace(
-      isAuthenticated ? (inApp ? segment.join("/") : "home") : "signIn"
+      isAuthenticated ? (inApp ? segment.join("/") : "home") : "logIn"
     );
   }, [isAuthenticated, segment]);
 
