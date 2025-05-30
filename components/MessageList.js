@@ -1,5 +1,5 @@
-import { ScrollView } from "react-native";
-import React, { useEffect, useRef } from "react";
+import { FlatList } from "react-native";
+import React, { useRef, useState, useCallback } from "react";
 import MessageItem from "./MessageItem";
 import FileMessage from "./FileMessage";
 import {
@@ -12,20 +12,17 @@ import { View, Text, Image } from "react-native";
 
 export default function MessageList({ messages, currentUser }) {
   const scrollViewRef = useRef(null);
+  const PAGE_SIZE = 10;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
-  // Auto-scroll to the bottom when new messages arrive
-  useEffect(() => {
-    // Enhanced null checking
-    if (scrollViewRef.current && messages && messages.length > 0) {
-      // Delay scroll to ensure content has been rendered
-      setTimeout(() => {
-        // Additional null check in case ref becomes null during timeout
-        if (scrollViewRef.current) {
-          scrollViewRef.current.scrollToEnd({ animated: true });
-        }
-      }, 100);
+  // Show only the latest visibleCount messages
+  const pagedMessages = [...messages].slice(-visibleCount).reverse();
+
+  const handleLoadMore = useCallback(() => {
+    if (visibleCount < messages.length) {
+      setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, messages.length));
     }
-  }, [messages]);
+  }, [visibleCount, messages.length]);
 
   // Helper function to detect image files - same improved logic as FileMessage
   const isImageFile = (message) => {
@@ -171,31 +168,22 @@ export default function MessageList({ messages, currentUser }) {
   };
 
   return (
-    <ScrollView
+    <FlatList
       ref={scrollViewRef}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={{ paddingVertical: 8 }}
-      onContentSizeChange={() => {
-        try {
-          if (scrollViewRef && scrollViewRef.current) {
-            scrollViewRef.current.scrollToEnd({ animated: true });
-          }
-        } catch (error) {
-          console.log("Scroll error:", error);
-        }
-      }}
-    >
-      {messages.map((message, index) => {
+      data={pagedMessages}
+      inverted
+      keyExtractor={(item, index) =>
+        item.id ? item.id.toString() : index.toString()
+      }
+      renderItem={({ item: message, index }) => {
         const isImage = isImageFile(message);
         const isVideo =
           message.fileType && message.fileType.startsWith("video/");
         const isFile = message.fileUrl;
         const isCurrentUser = message.senderId === currentUser?.uid;
-
         if (isImage || isVideo || isFile) {
           return renderFileMessage(message, isCurrentUser);
         }
-
         // For regular text messages
         return (
           <View
@@ -203,9 +191,7 @@ export default function MessageList({ messages, currentUser }) {
             className={`mb-1.5 ${isCurrentUser ? "pr-3 pl-14" : "pl-3 pr-14"}`}
           >
             <View
-              className={`flex-row items-start ${
-                isCurrentUser ? "justify-end" : ""
-              }`}
+              className={`flex-row items-start ${isCurrentUser ? "justify-end" : ""}`}
             >
               {!isCurrentUser && (
                 <View className="h-8 w-8 mr-2 mt-1">
@@ -222,7 +208,22 @@ export default function MessageList({ messages, currentUser }) {
             </View>
           </View>
         );
-      })}
-    </ScrollView>
+      }}
+      ListFooterComponent={
+        visibleCount < messages.length ? (
+          <View style={{ alignItems: "center", paddingVertical: 8 }}>
+            <Text style={{ color: "#888", fontSize: 14 }}>
+              See older messages
+            </Text>
+          </View>
+        ) : null
+      }
+      showsVerticalScrollIndicator={false}
+      contentContainerStyle={{ paddingVertical: 8 }}
+      onEndReached={handleLoadMore}
+      onEndReachedThreshold={0.1}
+      onScrollToIndexFailed={() => {}}
+      // Optionally, you can add getItemLayout for performance if messages are fixed height
+    />
   );
 }

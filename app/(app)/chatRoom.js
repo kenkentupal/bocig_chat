@@ -56,34 +56,8 @@ export default function ChatRoom() {
 
   // Handle case where page is reloaded and selectedChatUser is lost
   useEffect(() => {
-    // If there's no selected chat user (e.g., after page reload)
-    // We should redirect to home or retrieve user data from another source
     if (!item?.uid) {
-      // Option 1: Redirect to home
       // router.replace("/home");
-
-      // Option 2: Attempt to retrieve from URL params or localStorage
-      // This is just a placeholder - implement based on your app's structure
-      const attemptRecoverUser = async () => {
-        try {
-          // For web, you could store in localStorage
-          if (Platform.OS === "web" && window.localStorage) {
-            const savedUserData =
-              window.localStorage.getItem("selectedChatUser");
-            if (savedUserData) {
-              const parsedUser = JSON.parse(savedUserData);
-              setSelectedChatUser(parsedUser);
-            }
-          }
-        } catch (error) {
-          console.log("Error recovering user:", error);
-        }
-      };
-
-      attemptRecoverUser();
-    } else if (Platform.OS === "web" && window.localStorage) {
-      // Save for potential page reloads
-      window.localStorage.setItem("selectedChatUser", JSON.stringify(item));
     }
   }, [item, router, setSelectedChatUser]);
 
@@ -105,53 +79,15 @@ export default function ChatRoom() {
   // Function to pick images - restrict to images only and force image type
   const pickImage = async () => {
     try {
-      if (Platform.OS === "web") {
-        // Web approach - use input element directly for more control
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
-
-        // Create a promise to handle the file selection
-        const filePromise = new Promise((resolve) => {
-          input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-              // Create a file object with proper type information
-              resolve({
-                uri: URL.createObjectURL(file),
-                name: file.name,
-                type: file.type || "image/jpeg", // Force image type if missing
-                size: file.size,
-                nativeFile: file, // Keep reference to the native File object
-                isImage: true, // Explicitly set isImage flag
-              });
-            } else {
-              resolve(null);
-            }
-          };
-        });
-
-        // Trigger the file dialog
-        input.click();
-
-        // Wait for user selection
-        const fileResult = await filePromise;
-        if (fileResult) {
-          console.log("Web file picked:", fileResult);
-          uploadAndSendFile(fileResult);
-        }
-      } else {
-        // Native platforms - use existing approach
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
-          allowsEditing: false,
-          quality: 0.8,
-        });
-
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-          const selectedAsset = result.assets[0];
-          uploadAndSendFile(selectedAsset);
-        }
+      // Native platforms only
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images, // Only images
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedAsset = result.assets[0];
+        uploadAndSendFile(selectedAsset);
       }
     } catch (error) {
       console.error("Error picking image:", error);
@@ -162,70 +98,24 @@ export default function ChatRoom() {
   // Function to pick images or videos
   const pickMedia = async () => {
     try {
-      if (Platform.OS === "web") {
-        // Web approach - use input element directly for more control
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*,video/*";
-
-        // Create a promise to handle the file selection
-        const filePromise = new Promise((resolve) => {
-          input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-              // Detect if image or video
-              const isImage = file.type.startsWith("image/");
-              const isVideo = file.type.startsWith("video/");
-              resolve({
-                uri: URL.createObjectURL(file),
-                name: file.name,
-                type:
-                  file.type ||
-                  (isImage
-                    ? "image/jpeg"
-                    : isVideo
-                      ? "video/mp4"
-                      : "application/octet-stream"),
-                size: file.size,
-                nativeFile: file, // Keep reference to the native File object
-                isImage,
-                isVideo,
-              });
-            } else {
-              resolve(null);
-            }
-          };
-        });
-
-        // Trigger the file dialog
-        input.click();
-
-        // Wait for user selection
-        const fileResult = await filePromise;
-        if (fileResult) {
-          uploadAndSendFile(fileResult);
-        }
-      } else {
-        // Native platforms - use image picker for both images and videos
-        const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ImagePicker.MediaTypeOptions.All, // Allow both images and videos
-          allowsEditing: false,
-          quality: 0.8,
-        });
-
-        if (!result.canceled && result.assets && result.assets.length > 0) {
-          const selectedAsset = result.assets[0];
-          // Add isImage/isVideo flags for consistency
-          const isImage =
-            selectedAsset.type === "image" ||
-            (selectedAsset.mimeType &&
-              selectedAsset.mimeType.startsWith("image/"));
-          const isVideo =
-            selectedAsset.type === "video" ||
-            (selectedAsset.mimeType &&
-              selectedAsset.mimeType.startsWith("video/"));
-          uploadAndSendFile({ ...selectedAsset, isImage, isVideo });
-        }
+      // Native platforms only
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.All, // Allow both images and videos
+        allowsEditing: false,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const selectedAsset = result.assets[0];
+        // Add isImage/isVideo flags for consistency
+        const isImage =
+          selectedAsset.type === "image" ||
+          (selectedAsset.mimeType &&
+            selectedAsset.mimeType.startsWith("image/"));
+        const isVideo =
+          selectedAsset.type === "video" ||
+          (selectedAsset.mimeType &&
+            selectedAsset.mimeType.startsWith("video/"));
+        uploadAndSendFile({ ...selectedAsset, isImage, isVideo });
       }
     } catch (error) {
       console.error("Error picking media:", error);
@@ -280,51 +170,23 @@ export default function ChatRoom() {
       setIsUploading(true);
       setUploadProgress(0);
 
-      // Handle platform differences in file objects
-      let fileObj, fileExtension, fileType, isImage, fileSize, fileName;
-
-      if (Platform.OS === "web") {
-        // Web-specific handling
-        fileObj = file.nativeFile || file;
-
-        // Get file extension and name safely
-        fileName = file.name || "unknown_file";
-        fileExtension = fileName.includes(".")
-          ? fileName.split(".").pop().toLowerCase()
-          : "unknown";
-
-        fileType = file.type || `application/${fileExtension}`;
-        fileSize = file.size || 0;
-
-        isImage =
-          file.isImage === true ||
-          (fileType && fileType.startsWith("image/")) ||
-          ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileExtension);
-      } else {
-        // Native platform handling with proper validation
-        if (!file.uri) {
-          throw new Error("File URI is missing");
-        }
-
-        // Safe extraction of file extension
-        const uriParts = file.uri.split(".");
-        fileExtension =
-          uriParts.length > 1
-            ? uriParts[uriParts.length - 1].toLowerCase()
-            : "unknown";
-
-        fileType = file.mimeType || file.type || `file/${fileExtension}`;
-        fileName = file.name || `File_${new Date().getTime()}.${fileExtension}`;
-        fileSize = file.fileSize || file.size || 0;
-
-        isImage =
-          fileType.startsWith("image/") ||
-          ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileExtension);
-
-        fileObj = file;
+      // Native platform handling only
+      if (!file.uri) {
+        throw new Error("File URI is missing");
       }
-
-      // Create a unique path for the file
+      const uriParts = file.uri.split(".");
+      const fileExtension =
+        uriParts.length > 1
+          ? uriParts[uriParts.length - 1].toLowerCase()
+          : "unknown";
+      const fileType = file.mimeType || file.type || `file/${fileExtension}`;
+      const fileName =
+        file.name || `File_${new Date().getTime()}.${fileExtension}`;
+      const fileSize = file.fileSize || file.size || 0;
+      const isImage =
+        fileType.startsWith("image/") ||
+        ["jpg", "jpeg", "png", "gif", "bmp", "webp"].includes(fileExtension);
+      const fileObj = file;
       const filePath = `chats/${getRoomId(
         user.uid,
         item.uid
@@ -332,17 +194,6 @@ export default function ChatRoom() {
         /[^a-zA-Z0-9.]/g,
         "_"
       )}`;
-
-      console.log("Processed file info:", {
-        platform: Platform.OS,
-        fileName,
-        fileType,
-        fileExtension,
-        fileSize,
-        isImage,
-      });
-
-      // Upload file
       let uploadResult;
       try {
         uploadResult = await createUploadTask(fileObj, filePath, (progress) => {
@@ -357,19 +208,13 @@ export default function ChatRoom() {
         setIsUploading(false);
         return;
       }
-
       if (uploadResult.canceled || !uploadResult.url) {
-        console.log("Upload was canceled or failed");
         setIsUploading(false);
         return;
       }
-
-      // Create and send message
       let roomId = getRoomId(user?.uid, item?.uid);
       const docRef = doc(db, "rooms", roomId);
       const messageRef = collection(docRef, "messages");
-
-      // For web images, force these fields to ensure proper rendering
       const messageData = {
         senderId: user?.uid,
         receiverId: item?.uid,
@@ -384,13 +229,6 @@ export default function ChatRoom() {
         createdAt: serverTimestamp(),
         seen: false,
       };
-
-      // Extra properties for web images to ensure they render correctly
-      if (isImage) {
-        messageData._isWebImage = true;
-        messageData._imageExtension = fileExtension;
-      }
-
       await addDoc(messageRef, messageData);
     } catch (error) {
       console.error("Error during file upload:", error);
@@ -521,138 +359,91 @@ export default function ChatRoom() {
     return () => unsubscribe();
   }, [item, user]);
 
-  // Platform-specific attachment menu handling
+  // Mobile view - bottom sheet modal only
   const renderAttachmentMenu = () => {
-    if (Platform.OS === "web") {
-      // Web view - dropdown menu above attachment button
-      return (
-        showAttachmentOptions && (
-          <View
-            className="absolute bottom-16 left-4 bg-white rounded-lg shadow-lg z-10 overflow-hidden"
+    return (
+      <Modal
+        transparent={true}
+        visible={showAttachmentOptions}
+        animationType="none"
+        onRequestClose={toggleAttachmentMenu}
+      >
+        <Pressable
+          className="flex-1 bg-black/30"
+          onPress={toggleAttachmentMenu}
+        >
+          <Animated.View
+            className="absolute bottom-0 w-full bg-white rounded-t-3xl shadow-lg"
             style={{
-              width: 180,
-              borderWidth: 1,
-              borderColor: "#e5e7eb",
+              transform: [
+                {
+                  translateY: slideAnimation.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [300, 0],
+                  }),
+                },
+              ],
             }}
           >
-            <TouchableOpacity
-              className="flex-row items-center px-4 py-3 border-b border-gray-100"
-              onPress={() => {
-                setShowAttachmentOptions(false);
-                setTimeout(() => pickMedia(), 100);
-              }}
-            >
-              <View className="w-8 h-8 bg-blue-50 rounded-full items-center justify-center mr-3">
-                <Ionicons name="image" size={hp(2)} color="#0084ff" />
-              </View>
-              <Text className="text-gray-800">Image/Video</Text>
-            </TouchableOpacity>
+            {/* Header */}
+            <View className="border-b border-gray-200 pt-2 pb-4">
+              <View className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
+              <Text className="text-lg font-semibold text-center">
+                Attach File
+              </Text>
+            </View>
 
-            <TouchableOpacity
-              className="flex-row items-center px-4 py-3"
-              onPress={() => {
-                setShowAttachmentOptions(false);
-                setTimeout(() => pickDocument(), 100);
-              }}
-            >
-              <View className="w-8 h-8 bg-blue-50 rounded-full items-center justify-center mr-3">
-                <Ionicons name="document-text" size={hp(2)} color="#0084ff" />
-              </View>
-              <Text className="text-gray-800">Document</Text>
-            </TouchableOpacity>
-          </View>
-        )
-      );
-    } else {
-      // Mobile view - bottom sheet modal
-      return (
-        <Modal
-          transparent={true}
-          visible={showAttachmentOptions}
-          animationType="none"
-          onRequestClose={toggleAttachmentMenu}
-        >
-          <Pressable
-            className="flex-1 bg-black/30"
-            onPress={toggleAttachmentMenu}
-          >
-            <Animated.View
-              className="absolute bottom-0 w-full bg-white rounded-t-3xl shadow-lg"
-              style={{
-                transform: [
-                  {
-                    translateY: slideAnimation.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [300, 0],
-                    }),
-                  },
-                ],
-              }}
-            >
-              {/* Header */}
-              <View className="border-b border-gray-200 pt-2 pb-4">
-                <View className="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-                <Text className="text-lg font-semibold text-center">
-                  Attach File
-                </Text>
-              </View>
-
-              {/* Attachment options */}
-              <View className="flex-row px-4 py-6 justify-around">
-                <TouchableOpacity
-                  className="items-center"
-                  onPress={() => {
-                    toggleAttachmentMenu();
-                    setTimeout(() => pickMedia(), 300);
-                  }}
-                >
-                  <View className="w-14 h-14 bg-blue-50 rounded-full items-center justify-center mb-2">
-                    <Ionicons name="image" size={hp(3.5)} color="#0084ff" />
-                  </View>
-                  <Text className="text-sm text-gray-800">Image/Video</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  className="items-center"
-                  onPress={() => {
-                    toggleAttachmentMenu();
-                    setTimeout(() => pickDocument(), 300);
-                  }}
-                >
-                  <View className="w-14 h-14 bg-blue-50 rounded-full items-center justify-center mb-2">
-                    <Ionicons
-                      name="document-text"
-                      size={hp(3.5)}
-                      color="#0084ff"
-                    />
-                  </View>
-                  <Text className="text-sm text-gray-800">Document</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Cancel button */}
+            {/* Attachment options */}
+            <View className="flex-row px-4 py-6 justify-around">
               <TouchableOpacity
-                className="border-t border-gray-200 p-4"
-                onPress={toggleAttachmentMenu}
+                className="items-center"
+                onPress={() => {
+                  toggleAttachmentMenu();
+                  setTimeout(() => pickMedia(), 300);
+                }}
               >
-                <Text className="text-center font-medium text-blue-600">
-                  Cancel
-                </Text>
+                <View className="w-14 h-14 bg-blue-50 rounded-full items-center justify-center mb-2">
+                  <Ionicons name="image" size={hp(3.5)} color="#0084ff" />
+                </View>
+                <Text className="text-sm text-gray-800">Image/Video</Text>
               </TouchableOpacity>
-            </Animated.View>
-          </Pressable>
-        </Modal>
-      );
-    }
+
+              <TouchableOpacity
+                className="items-center"
+                onPress={() => {
+                  toggleAttachmentMenu();
+                  setTimeout(() => pickDocument(), 300);
+                }}
+              >
+                <View className="w-14 h-14 bg-blue-50 rounded-full items-center justify-center mb-2">
+                  <Ionicons
+                    name="document-text"
+                    size={hp(3.5)}
+                    color="#0084ff"
+                  />
+                </View>
+                <Text className="text-sm text-gray-800">Document</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Cancel button */}
+            <TouchableOpacity
+              className="border-t border-gray-200 p-4"
+              onPress={toggleAttachmentMenu}
+            >
+              <Text className="text-center font-medium text-blue-600">
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </Animated.View>
+        </Pressable>
+      </Modal>
+    );
   };
 
-  // Handle file attachment options - simplified for both platforms
+  // Update handleMenuPress to only use mobile logic
   const handleMenuPress = () => {
-    if (Platform.OS === "web") {
-      setShowAttachmentOptions(!showAttachmentOptions);
-    } else {
-      toggleAttachmentMenu();
-    }
+    toggleAttachmentMenu();
   };
 
   return (
