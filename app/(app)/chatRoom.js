@@ -47,6 +47,7 @@ import {
   onSnapshot,
   orderBy,
 } from "firebase/firestore";
+import * as ScreenCapture from "expo-screen-capture";
 
 export default function ChatRoom() {
   // Hooks
@@ -358,6 +359,15 @@ export default function ChatRoom() {
 
     return () => unsubscribe();
   }, [item, user]);
+
+  // Prevent screenshots in this screen
+  useEffect(() => {
+    ScreenCapture.preventScreenCaptureAsync();
+    return () => {
+      // Allow screenshots again when leaving
+      ScreenCapture.allowScreenCaptureAsync();
+    };
+  }, []);
 
   // Mobile view - bottom sheet modal only
   const renderAttachmentMenu = () => {
