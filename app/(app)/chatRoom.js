@@ -159,11 +159,94 @@ export default function ChatRoom() {
     }
   };
 
+  // Function to pick images or videos
+  const pickMedia = async () => {
+    try {
+      if (Platform.OS === "web") {
+        // Web approach - use input element directly for more control
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*,video/*";
+
+        // Create a promise to handle the file selection
+        const filePromise = new Promise((resolve) => {
+          input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+              // Detect if image or video
+              const isImage = file.type.startsWith("image/");
+              const isVideo = file.type.startsWith("video/");
+              resolve({
+                uri: URL.createObjectURL(file),
+                name: file.name,
+                type:
+                  file.type ||
+                  (isImage
+                    ? "image/jpeg"
+                    : isVideo
+                      ? "video/mp4"
+                      : "application/octet-stream"),
+                size: file.size,
+                nativeFile: file, // Keep reference to the native File object
+                isImage,
+                isVideo,
+              });
+            } else {
+              resolve(null);
+            }
+          };
+        });
+
+        // Trigger the file dialog
+        input.click();
+
+        // Wait for user selection
+        const fileResult = await filePromise;
+        if (fileResult) {
+          uploadAndSendFile(fileResult);
+        }
+      } else {
+        // Native platforms - use image picker for both images and videos
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ImagePicker.MediaTypeOptions.All, // Allow both images and videos
+          allowsEditing: false,
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const selectedAsset = result.assets[0];
+          // Add isImage/isVideo flags for consistency
+          const isImage =
+            selectedAsset.type === "image" ||
+            (selectedAsset.mimeType &&
+              selectedAsset.mimeType.startsWith("image/"));
+          const isVideo =
+            selectedAsset.type === "video" ||
+            (selectedAsset.mimeType &&
+              selectedAsset.mimeType.startsWith("video/"));
+          uploadAndSendFile({ ...selectedAsset, isImage, isVideo });
+        }
+      }
+    } catch (error) {
+      console.error("Error picking media:", error);
+      Alert.alert("Error picking media:", error.message);
+    }
+  };
+
   // Function to pick documents
   const pickDocument = async () => {
     try {
       const result = await DocumentPicker.getDocumentAsync({
-        type: "*/*",
+        type: [
+          "application/pdf",
+          "application/msword",
+          "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "application/vnd.ms-excel",
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          "application/vnd.ms-powerpoint",
+          "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+          "text/plain",
+        ],
         copyToCacheDirectory: true,
       });
 
@@ -456,13 +539,13 @@ export default function ChatRoom() {
               className="flex-row items-center px-4 py-3 border-b border-gray-100"
               onPress={() => {
                 setShowAttachmentOptions(false);
-                setTimeout(() => pickImage(), 100);
+                setTimeout(() => pickMedia(), 100);
               }}
             >
               <View className="w-8 h-8 bg-blue-50 rounded-full items-center justify-center mr-3">
                 <Ionicons name="image" size={hp(2)} color="#0084ff" />
               </View>
-              <Text className="text-gray-800">Image</Text>
+              <Text className="text-gray-800">Image/Video</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -520,13 +603,13 @@ export default function ChatRoom() {
                   className="items-center"
                   onPress={() => {
                     toggleAttachmentMenu();
-                    setTimeout(() => pickImage(), 300);
+                    setTimeout(() => pickMedia(), 300);
                   }}
                 >
                   <View className="w-14 h-14 bg-blue-50 rounded-full items-center justify-center mb-2">
                     <Ionicons name="image" size={hp(3.5)} color="#0084ff" />
                   </View>
-                  <Text className="text-sm text-gray-800">Image</Text>
+                  <Text className="text-sm text-gray-800">Image/Video</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity

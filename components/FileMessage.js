@@ -17,8 +17,6 @@ import { heightPercentageToDP as hp } from "react-native-responsive-screen";
 import { Video, ResizeMode } from "expo-av";
 import * as VideoThumbnails from "expo-video-thumbnails";
 
-
-
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const formatFileSize = (bytes) => {
@@ -127,12 +125,6 @@ const FileMessage = ({
   // Enhanced function to detect if a file is an image
   const isImageFile = (file) => {
     // Log the file object for debugging
-    console.log("Checking file type:", {
-      isImage: file.isImage,
-      fileType: file.fileType,
-      fileName: file.fileName,
-      _isWebImage: file._isWebImage,
-    });
 
     // Direct flags from upload handling
     if (file.isImage === true || file._isWebImage === true) return true;
@@ -204,7 +196,7 @@ const FileMessage = ({
     return false;
   };
 
-  // Media preview modal - with added download button
+  // Media preview modal - with download button removed for privacy
   const MediaModal = () => (
     <Modal
       animationType="fade"
@@ -220,20 +212,9 @@ const FileMessage = ({
       <StatusBar barStyle="light-content" backgroundColor="black" />
       <View className="flex-1 bg-black justify-center items-center">
         <SafeAreaView className="flex-1 w-full justify-center items-center">
-          {/* Top buttons container */}
+          {/* Top buttons container - download removed */}
           <View className="absolute top-10 right-5 z-50 flex-row">
-            {/* Download button - only shown for images */}
-            {isImageFile(file) && (
-              <TouchableOpacity
-                onPress={handleDownload}
-                className="bg-black/70 rounded-full p-3 mr-3"
-                style={{ elevation: 5 }}
-              >
-                <MaterialIcons name="file-download" size={24} color="white" />
-              </TouchableOpacity>
-            )}
-
-            {/* Close button */}
+            {/* Close button only */}
             <TouchableOpacity
               onPress={() => {
                 if (videoRef.current) {
@@ -255,7 +236,7 @@ const FileMessage = ({
               source={{ uri: file.fileUrl }}
               style={{
                 width: "100%",
-                height: "80%",
+                height: "100%",
                 maxWidth: SCREEN_WIDTH,
                 maxHeight: SCREEN_HEIGHT * 0.9,
               }}
@@ -438,12 +419,12 @@ const FileMessage = ({
           {file.fileType?.includes("pdf")
             ? "PDF Document"
             : file.fileType?.includes("word")
-            ? "Word Document"
-            : file.fileType?.includes("excel")
-            ? "Excel Spreadsheet"
-            : file.fileType?.includes("powerpoint")
-            ? "Presentation"
-            : "Document"}
+              ? "Word Document"
+              : file.fileType?.includes("excel")
+                ? "Excel Spreadsheet"
+                : file.fileType?.includes("powerpoint")
+                  ? "Presentation"
+                  : "Document"}
         </Text>
         <MaterialIcons name="file-download" size={hp(2.2)} color="#0084ff" />
       </View>
